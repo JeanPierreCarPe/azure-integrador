@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Presentación Azure Speech Demo</title>
+<style>
+@page{size:1280px 720px;margin:0}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;color:#1d2330}
+.s{width:1280px;height:720px;padding:64px 80px;page-break-after:always;position:relative;overflow:hidden;background:#fff}
+.s:last-child{page-break-after:auto}
+.n{position:absolute;right:48px;bottom:30px;font-size:16px;color:#8a93a3}
+h1{font-size:60px;line-height:1.08;margin:0 0 16px;color:#0b3d6e}
+h2{font-size:40px;margin:0 0 6px;color:#0b3d6e}
+.k{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#6a7385;margin-bottom:10px}
+.lead{font-size:24px;color:#4a5365;margin:0 0 28px}
+ul{font-size:26px;line-height:1.5;padding-left:28px;margin:0}
+li{margin-bottom:8px}
+pre{background:#101827;color:#e6edf7;font:19px/1.5 Consolas,monospace;padding:22px 26px;border-radius:6px;margin:0;white-space:pre-wrap}
+.dark{background:#0b3d6e;color:#fff}
+.dark h1{color:#fff}.dark .k{color:#a9c4e0}.dark .lead{color:#cfe0f1}
+.cols{display:flex;gap:40px}.cols>div{flex:1}
+.box{border:2px solid #0b3d6e;border-radius:6px;padding:20px 22px;text-align:center;font-size:26px;font-weight:600;background:#f3f7fb}
+.box small{display:block;font-weight:400;font-size:18px;color:#5a6475;margin-top:4px}
+.flow{display:flex;align-items:center;gap:22px;margin-top:30px}
+.flow .ar{font-size:36px;color:#0b3d6e}
+.step{display:flex;gap:18px;align-items:flex-start;margin-bottom:18px;font-size:25px}
+.step b.num{flex:none;width:42px;height:42px;border-radius:50%;background:#0b3d6e;color:#fff;text-align:center;line-height:42px;font-size:22px}
+table{border-collapse:collapse;font-size:22px;width:100%}
+th,td{border-bottom:1px solid #d5dbe5;padding:11px 12px;text-align:left}
+th{color:#0b3d6e}
+.small{font-size:20px;color:#5a6475;margin-top:14px}
+</style></head><body>
+
+<div class="s dark">
+ <div class="k" style="margin-top:150px">Proyecto integrador · Computación en la nube</div>
+ <h1>Azure Speech Demo</h1>
+ <p class="lead">Convertir texto en voz y voz en texto con Azure AI Speech, React y Express</p>
+ <p class="lead" style="margin-top:60px;font-size:20px">Nombre del estudiante · Curso · Fecha</p>
+</div>
+
+<div class="s"><div class="k">Contexto</div><h2>Problema y objetivo</h2>
+ <p class="lead">Qué se quiso resolver y hasta dónde llega el proyecto</p>
+ <div class="cols"><div><ul>
+  <li>La voz es una interfaz natural, pero implementarla desde cero exige modelos propios.</li>
+  <li>Azure ofrece el servicio ya entrenado: solo hay que integrarlo bien.</li></ul></div>
+ <div><ul>
+  <li><b>Objetivo:</b> app web con texto a voz y voz a texto.</li>
+  <li><b>Límite:</b> sin usuarios, sin base de datos, sin despliegue.</li>
+  <li><b>Condición:</b> la clave no llega al navegador.</li></ul></div></div>
+ <div class="n">2</div></div>
+
+<div class="s"><div class="k">Diseño</div><h2>Arquitectura</h2>
+ <p class="lead">El SDK corre en dos sitios porque el micrófono solo existe en el navegador</p>
+ <div class="flow">
+  <div class="box" style="flex:1">Navegador<small>React 18 + Vite</small></div><div class="ar">⇄</div>
+  <div class="box" style="flex:1">Servidor<small>Express · puerto 3001</small></div><div class="ar">→</div>
+  <div class="box" style="flex:1">Azure AI Speech<small>recurso en la nube</small></div></div>
+ <div style="margin-top:44px"><table>
+  <tr><th>Función</th><th>Dónde corre el SDK</th><th>Credencial</th></tr>
+  <tr><td>Texto a voz</td><td>Servidor</td><td>Clave de suscripción</td></tr>
+  <tr><td>Voz a texto</td><td>Navegador</td><td>Token temporal (~10 min)</td></tr></table></div>
+ <div class="n">3</div></div>
+
+<div class="s"><div class="k">Parte 1</div><h2>Configuración en Azure</h2>
+ <p class="lead">Cuatro pasos en el portal</p>
+ <div class="step"><b class="num">1</b><div>Crear un recurso <b>Speech</b> (Azure AI Services) en portal.azure.com</div></div>
+ <div class="step"><b class="num">2</b><div>Grupo de recursos nuevo, región cercana (eastus), plan <b>Free F0</b></div></div>
+ <div class="step"><b class="num">3</b><div>Ir a <b>Claves y punto de conexión</b> y copiar KEY 1 y la región</div></div>
+ <div class="step"><b class="num">4</b><div>Pegarlas en <b>server/.env</b> (ignorado por git)</div></div>
+ <pre style="margin-top:20px">SPEECH_KEY=&lt;KEY 1&gt;
+SPEECH_REGION=eastus</pre>
+ <div class="n">4</div></div>
+
+<div class="s"><div class="k">Parte 2 · Código</div><h2>Texto a voz en el servidor</h2>
+ <p class="lead">Se valida la entrada y se devuelve un MP3 generado en memoria</p>
+ <pre>const cfg = sdk.SpeechConfig.fromSubscription(KEY, REGION);
+cfg.speechSynthesisVoiceName = voice;      // es-CO-SalomeNeural
+cfg.speechSynthesisOutputFormat =
+  sdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3;
+
+const synth = new sdk.SpeechSynthesizer(cfg, null);
+synth.speakTextAsync(text, (result) =&gt; {
+  synth.close();
+  res.set("Content-Type", "audio/mpeg");
+  res.send(Buffer.from(result.audioData));
+});</pre>
+ <p class="small">Validaciones previas: texto no vacío · máximo 500 caracteres · voz dentro del catálogo.</p>
+ <div class="n">5</div></div>
+
+<div class="s"><div class="k">Parte 2 · Seguridad</div><h2>Token temporal para el navegador</h2>
+ <p class="lead">El servidor cambia la clave por un token que caduca en unos 10 minutos</p>
+ <pre>// server/index.js
+const r = await fetch(
+  `https://${REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
+  { method: "POST",
+    headers: { "Ocp-Apim-Subscription-Key": KEY } });
+res.json({ token: await r.text(), region: REGION });</pre>
+ <ul style="margin-top:26px;font-size:24px"><li>Si el token se filtra, caduca solo; la clave permanece privada.</li>
+ <li>Se pide uno nuevo cada vez que se inicia la grabación.</li></ul>
+ <div class="n">6</div></div>
+
+<div class="s"><div class="k">Parte 2 · Código</div><h2>Voz a texto en el navegador</h2>
+ <p class="lead">Reconocimiento continuo con texto parcial y texto final</p>
+ <pre>const { token, region } = await (await fetch("/api/token")).json();
+const cfg = sdk.SpeechConfig.fromAuthorizationToken(token, region);
+cfg.speechRecognitionLanguage = lang;      // es-CO
+const rec = new sdk.SpeechRecognizer(
+  cfg, sdk.AudioConfig.fromDefaultMicrophoneInput());
+
+rec.recognizing = (_s, e) =&gt; setPartial(e.result.text);
+rec.recognized  = (_s, e) =&gt; addFinal(e.result.text);
+rec.startContinuousRecognitionAsync();</pre>
+ <p class="small">Al detener o cambiar de pestaña se cierra el reconocedor para liberar el micrófono.</p>
+ <div class="n">7</div></div>
+
+<div class="s"><div class="k">Parte 3</div><h2>Uso de la aplicación</h2>
+ <div class="cols" style="margin-top:20px"><div>
+  <h3 style="font-size:28px;margin:0 0 14px;color:#0b3d6e">Texto a voz</h3>
+  <div class="step"><b class="num">1</b><div>Escribir el texto</div></div>
+  <div class="step"><b class="num">2</b><div>Elegir idioma y voz</div></div>
+  <div class="step"><b class="num">3</b><div>Pulsar <b>Escuchar</b></div></div></div>
+ <div><h3 style="font-size:28px;margin:0 0 14px;color:#0b3d6e">Voz a texto</h3>
+  <div class="step"><b class="num">1</b><div>Elegir el idioma</div></div>
+  <div class="step"><b class="num">2</b><div><b>Iniciar grabación</b> y permitir el micrófono</div></div>
+  <div class="step"><b class="num">3</b><div>Hablar; <b>Detener</b> al terminar</div></div></div></div>
+ <p class="small">Diez idiomas disponibles: español (CO, ES, MX, AR), inglés (US, GB), portugués, francés, alemán e italiano.</p>
+ <div class="n">8</div></div>
+
+<div class="s"><div class="k">Aprendizaje</div><h2>Habilidades que se pusieron en práctica</h2>
+ <div class="cols" style="margin-top:20px"><div><ul style="font-size:24px">
+  <li><b>Cloud:</b> crear y configurar un recurso, claves, regiones, planes y costos</li>
+  <li><b>Backend:</b> API REST con Express, validación de entradas, manejo de errores</li>
+  <li><b>Frontend:</b> React con hooks, estado, efectos y limpieza de recursos</li></ul></div>
+ <div><ul style="font-size:24px">
+  <li><b>Seguridad:</b> secretos en variables de entorno, tokens de corta vida</li>
+  <li><b>Integración:</b> uso de un SDK en cliente y servidor</li>
+  <li><b>Calidad:</b> mensajes de error claros, accesibilidad básica, documentación</li></ul></div></div>
+ <div class="n">9</div></div>
+
+<div class="s dark"><div class="k" style="margin-top:60px">Cierre</div><h1 style="font-size:52px">Conclusiones</h1>
+ <ul style="color:#fff;margin-top:20px">
+  <li>Un servicio en la nube se integra con poco código si se separan bien las responsabilidades.</li>
+  <li>La clave se queda en el servidor; el navegador solo recibe tokens temporales.</li>
+  <li>Siguientes pasos: traducción en vivo, guardar historial, desplegar en Azure App Service.</li></ul>
+ <p class="lead" style="margin-top:50px;font-size:22px">Repositorio: github.com/JeanPierreCarPe/azure-integrador</p>
+ <div class="n" style="color:#a9c4e0">10</div></div>
+</body></html>
