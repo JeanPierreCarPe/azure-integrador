@@ -1,19 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { LANGS, EJEMPLOS } from "../languages.js";
 
 const MAX_CHARS = 500;
-
-const LANGS = [
-  { code: "es-CO", label: "Español (Colombia)" },
-  { code: "es-ES", label: "Español (España)" },
-  { code: "en-US", label: "Inglés (EE. UU.)" }
-];
-
-// Frases de ejemplo por idioma
-const EJEMPLOS = {
-  "es-CO": "Buenos días, hoy aprenderemos sobre inteligencia artificial.",
-  "es-ES": "Buenos días, hoy aprenderemos sobre inteligencia artificial.",
-  "en-US": "Good morning, today we will learn about artificial intelligence."
-};
 
 export default function TextToSpeech() {
   const [text, setText] = useState(EJEMPLOS["es-CO"]);

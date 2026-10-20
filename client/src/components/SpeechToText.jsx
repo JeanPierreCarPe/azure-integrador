@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-
-const LANGS = [
-  { code: "es-CO", label: "Español (Colombia)" },
-  { code: "es-ES", label: "Español (España)" },
-  { code: "en-US", label: "Inglés (EE. UU.)" }
-];
+import { LANGS } from "../languages.js";
 
 export default function SpeechToText() {
   const [lang, setLang] = useState("es-CO");
